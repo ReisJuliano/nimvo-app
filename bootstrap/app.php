@@ -27,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->renderable(function (\Stancl\Tenancy\Exceptions\TenantCouldNotBeIdentifiedOnDomainException $e) {
-            abort(404, 'Sistema não encontrado ou subdomínio inválido.');
+            abort(404);
         });
     })
     ->create();
