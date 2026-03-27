@@ -1,0 +1,98 @@
+<?php
+define('DB_HOST', 'localhost');
+define('DB_PORT', 3306);
+define('DB_USER', 'debian-sys-maint');
+define('DB_PASS', '3OfgxjtaLjvJlIEb');
+
+// Detecta subdomínio
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$host = explode(':', $host)[0]; // remove porta se tiver
+
+$parts = explode('.', $host);
+$subdomain = $parts[0];
+
+// Define banco por tenant
+if (in_array($subdomain, ['nimvo', 'www', 'localhost'])) {
+    $dbName = 'mercearia_tatu'; // fallback (admin ou demo)
+} else {
+    $dbName = 'tenant_' . $subdomain; // padrão: tenant_cliente
+}
+
+define('DB_NAME', $dbName);
+define('APP_NAME', 'Nimvo');
+define('APP_VERSION', '1.0.0');
+
+session_start();
+
+// 🔥 mantém tua lógica de URL (perfeita)
+function url($path = '') {
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
+    $dir = dirname($script);
+
+    if (basename($dir) === 'pages') {
+        $base = dirname($dir);
+    } else {
+        $base = $dir;
+    }
+
+    return rtrim($base, '/') . '/' . ltrim($path, '/');
+}
+
+function redirect($path) {
+    header('Location: ' . url($path));
+    exit;
+}
+
+function getDB() {
+    static $pdo = null;
+
+    if ($pdo === null) {
+        try {
+            $pdo = new PDO(
+                "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+                DB_USER,
+                DB_PASS,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
+            );
+        } catch (PDOException $e) {
+            die('<div style="font-family:sans-serif;padding:40px;max-width:600px;margin:60px auto;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;color:#dc2626">
+                <h2>Erro de Conexão</h2>
+                <p>' . $e->getMessage() . '</p>
+                <p style="font-size:13px;color:#666;margin-top:10px">
+                Banco: <b>' . DB_NAME . '</b>
+                </p>
+            </div>');
+        }
+    }
+
+    return $pdo;
+}
+
+function isLoggedIn() {
+    return isset($_SESSION['user_id']);
+}
+
+function requireLogin() {
+    if (!isLoggedIn()) redirect('login.php');
+}
+
+function currentUser() {
+    return $_SESSION['user'] ?? null;
+}
+
+function formatMoney($value) {
+    return 'R$ ' . number_format((float)$value, 2, ',', '.');
+}
+
+function formatDate($date) {
+    if (!$date) return '-';
+    return date('d/m/Y', strtotime($date));
+}
+
+function formatDateTime($date) {
+    if (!$date) return '-';
+    return date('d/m/Y H:i', strtotime($date));
+}
